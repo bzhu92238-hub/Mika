@@ -1,0 +1,31 @@
+name: OpenDesign Go Android validation
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: d321942cae90c1bdab5f17a65cc301fa6e9f8190
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+      - name: Android tests and build with a larger compiler heap
+        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:compileDebugAndroidTestKotlin --stacktrace --max-workers=2 '-Dorg.gradle.jvmargs=-Xmx6g -Dfile.encoding=UTF-8' -Pkotlin.compiler.execution.strategy=in-process
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: android-validation-reports
+          path: app/build/test-results/testDebugUnitTest
+          if-no-files-found: ignore
